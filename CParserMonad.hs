@@ -1,4 +1,4 @@
-module ParserMonad where
+module CParserMonad where
 import Control.Monad(ap)
 
 import Data.Char
