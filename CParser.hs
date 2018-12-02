@@ -1,7 +1,7 @@
 module LangParser where
 
-import Lang
-import ParserMonad
+import ASTInterpreter
+import CParserMonad
 
 -- TODO: apps, proofread everything
 
