@@ -39,7 +39,7 @@ data Stmt = Assign String Expr | Return Expr | Print Identifier | Break | Contin
 
 data Block = ListStmts [Stmt] | While BExpr Block | If BExpr Block | IfElse BExpr Block Block
 
-data Stmts = Statement Stmt | [Stmt] | BS Block Stmts | Bl Block 
+data Stmts = Statement Stmt | StmtList [Stmt] | BS Block Stmts | Bl Block 
 
 data Func = DefParams Identifier Identifier Stmts | DefNoParams Identifier Stmts
 
@@ -50,18 +50,10 @@ type Program = Funcs
 ---------
 
 data Ast = ValInt Int
-<<<<<<< HEAD
-         | Plus Ast Ast | Minus Ast Ast | Mult Ast Ast | Div Ast Ast 
-=======
          | Plus Ast Ast | Minus Ast Ast | Times Ast Ast | Div Ast Ast | Mod Ast Ast
-
-         | ValInt
->>>>>>> 12874fb0b26e6c6129016d0c6b817c87a430ccdb
-
          
          | ValBool Bool
          | And Ast Ast | Or Ast Ast | Not Ast
-
 
          | Nil
          | Cons Ast Ast
