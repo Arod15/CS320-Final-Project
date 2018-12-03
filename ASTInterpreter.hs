@@ -69,7 +69,10 @@ type Env = Map String Val
 
 
 eval :: Ast -> EnvUnsafe Env Val
-eval 
+eval (I a) = return $ a
+-- finish Factor
+eval (Neg f) = return $ -1 * (eval f)
+eval (Identifier exp) = undefined
 
 
 -- Let variable name = variable value in expression
