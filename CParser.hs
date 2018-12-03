@@ -212,7 +212,7 @@ modParser :: Parser Ast
 modParser = withInfix undefined [("%", Mod)]
 
 inequalityParser ::  Parser Ast -- they are on the same level of the hierarchy (?) so I can group them together
-greaterThanParser = withInfix udefined [("<", lessThan), ("<=", lessThanOrEqualTo), (">", greaterThan), (">=", greaterThanOrEqualTo), ("!=", notEqual), ("==", equalTo)]
+greaterThanParser = withInfix udefined [("<", LessThan), ("<=", LessThanEquals), (">", GreaterThan), (">=", GeaterThanEquals), ("!=", NotEqual), ("==", Equals)]
 
 termParser :: Parser Ast
 termParser = do factor <- token $ factorParser
