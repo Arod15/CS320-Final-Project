@@ -1,4 +1,4 @@
-module EnvUnsafe where
+module CEnvUnsafe where
 
 import Control.Monad(ap)
 

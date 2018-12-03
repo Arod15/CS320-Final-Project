@@ -1,4 +1,4 @@
-module LangParser where
+module CParser where
 
 import ASTInterpreter
 import CParserMonad
@@ -35,13 +35,6 @@ parser = apps <||> cons <||> orExpr <||> andExpr <||> addSubExpr <||> multDivExp
 
 -- we are mostly following the questionable c precedence rules
 
--- ungraded bonus: add additional pretty syntax for lists: [1,2,3,4]
-
-
-
-
--- -- some general functions that make parsing this easier
---
 oneOf :: [Parser a] -> Parser a
 oneOf [] = failParse
 oneOf (pa:rest) = pa <||> oneOf rest
@@ -52,11 +45,7 @@ oneOf (pa:rest) = pa <||> oneOf rest
 -- -- Just (true,"")
 -- -- *LangParser> parse (oneOf [ints,bools]) " tr ue"
 -- -- Nothing
---
---
--- -- we saw before the midterm that there were issues when there are multiple operators with the same precedence, this is a helper function to handle those
--- -- this generalizes the helper function posted on piaza from last time
--- -- it is left associative
+
 withInfix :: Parser a -> [(String, a -> a -> a)] -> Parser a
 withInfix pa ls = let operators = fmap fst ls
                       opParsers = fmap (\ s -> token $ literal s) operators
@@ -70,18 +59,8 @@ withInfix pa ls = let operators = fmap fst ls
                                                         in (innerParser out) <||> return out
                   in do l <- pa
                         (innerParser l) <||> (return l)
---
--- -- *LangParser> parse (withInfix intParser [("+", (+)), ("-", (-))]) "1+2+3+4-5"
--- -- Just (5,"")
--- -- *LangParser> parse (withInfix intParser [("+", (+)), ("-", (-))]) "100-1-10"
--- -- Just (89,"")
---
---
--- -- you may want to structure you grammar like this:
---
 keywords = ["if","then","else", "let", "in", "true","false"]
---
---
+
 vars :: Parser Ast
 vars = do s <- token $ varParser
           if s `elem` keywords
@@ -217,15 +196,28 @@ parens = do token $ literal "("
 -- *LangParser> parse parser "let x = (if true and false then 3 else elsee) in x + x"
 -- Just (let x = if true and false then 3 else elsee in x + x,"")
 
+---- NEW FUNCTIONS BELOW
 
+factorParser :: Parser Ast
+factorParser = exprParser <||> identParser <||> atoms
 
+identParser :: Parser Ast
+identParser = do var <- token $ varParser
+                 token $ literal "="
+                 body <- exprParser
+                 token $ literal ";\n"
+                 return $ Identifier var body
 
--- Some examples of weird stuff
+modParser :: Parser Ast
+modParser = withInfix undefined [("%", Mod)]
 
--- ex = prettyShow  (Mult (Var "a") (Or (Var "b") (Var "c"))) 0
+inequalityParser ::  Parser Ast -- they are on the same level of the hierarchy (?) so I can group them together
+greaterThanParser = withInfix udefined [("<", lessThan), ("<=", lessThanOrEqualTo), (">", greaterThan), (">=", greaterThanOrEqualTo), ("!=", notEqual), ("==", equalTo)]
 
--- ex1 = prettyShow (Minus (Var "y") (Minus (App (ValBool True) (ValInt (-3))) (Mult (ValBool False) (ValBool False)))) 0
+termParser :: Parser Ast
+termParser = do factor <- token $ factorParser
+                token $ parser
+                
+exprParser :: Parser Ast
 
--- ex2 = prettyShow (Cons (Var "z") (Not (Not (Plus (Mult (ValInt (-18)) Nil) (Not (ValInt 2)))))) 0
-
--- ex3 = "! ! (-18)"
+-- condParser

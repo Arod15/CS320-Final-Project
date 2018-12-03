@@ -1,4 +1,4 @@
-module CLang where
+module ASTInterpreter where
 
 import Prelude hiding (lookup)
 import Data.Map(Map, lookup, insert, empty, fromList)  -- for State
@@ -9,7 +9,7 @@ import CEnvUnsafe
 -- Here is the abstract syntax tree for our language
 
 data Ast = ValInt Int
-         | Plus Ast Ast | Minus Ast Ast | Times Ast Ast | Div Ast Ast
+         | Plus Ast Ast | Minus Ast Ast | Mult Ast Ast | Div Ast Ast 
 
          
          | ValBool Bool
@@ -72,21 +72,18 @@ eval (Or a b) = do n <- evalBool a
 eval (Not a) = do n <- evalBool a
                   return $ B $ not n
 
-eval (ValInt a) = return $ I $ a
+eval (ValInt a) = undefined
 eval (Plus a b) = do n <- evalInt a
                      m <- evalInt b
                      return $ I $ n + m
 eval (Minus a b) = do n <- evalInt a
                       m <- evalInt b
                       return $ I $ n - m
-eval (Mult a b) = do n <- evalInt a
-                     m <- evalInt b
-                     return $ I $ n * m
+eval (Mult a b) = undefined
 eval (Div a b) = do n <- evalInt a
                     m <- evalInt b
                     case m of 0 -> err "fuck me"
                               i -> return $ I $ n `div` i
-                    -- return $ I $ n `div` m
 
 eval (Nil) = return $ Ls []
 eval (Cons a b) = do n <- eval a
