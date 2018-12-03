@@ -8,8 +8,51 @@ import CEnvUnsafe
 
 -- Here is the abstract syntax tree for our language
 
+data Term = F Factor | Mult Term Factor | Div Term Factor | Mod Term Factor
+
+data Expr = T Term | Plus Expr Term | Minus Expr Term
+
+data Identifier = S String | Exp Expr
+
+data Factor = I Integer | Neg Factor | Identifier Expr
+
+---------
+
+data Cond = Equals Expr Expr 
+            | NotEquals Expr Expr 
+            | LessThan Expr Expr 
+            | LessThanEquals Expr Expr 
+            | GreaterThan Expr Expr 
+            | GreaterThanEquals Expr Expr
+
+---------
+
+data BFactor = C Cond | Not BFactor | BExpr
+
+data BTerm = BF BFactor | And BFactor BTerm
+
+data BExpr = BT BTerm | Or BTerm BExpr
+
+---------
+
+data Stmt = Assign String Expr | Return Expr | Print Identifier | Break | Continue
+
+data Block = ListStmts [Stmt] | While BExpr Block | If BExpr Block | IfElse BExpr Block Block
+
+data Stmts = Statement Stmt | [Stmt] | BS Block Stmts | Bl Block 
+
+data Func = DefParams Identifier Identifier Stmts | DefNoParams Identifier Stmts
+
+data Funcs = Fn Func | FnList [Func]
+
+type Program = Funcs
+
+---------
+
 data Ast = ValInt Int
-         | Plus Ast Ast | Minus Ast Ast | Times Ast Ast | Div Ast Ast
+         | Plus Ast Ast | Minus Ast Ast | Times Ast Ast | Div Ast Ast | Mod Ast Ast
+
+         | ValInt
 
          
          | ValBool Bool
