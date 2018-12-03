@@ -50,14 +50,7 @@ type Program = Funcs
 ---------
 
 data Ast = ValInt Int
-<<<<<<< HEAD
-         | Plus Ast Ast | Minus Ast Ast | Mult Ast Ast | Div Ast Ast 
-=======
          | Plus Ast Ast | Minus Ast Ast | Times Ast Ast | Div Ast Ast | Mod Ast Ast
-
-         | ValInt
->>>>>>> 12874fb0b26e6c6129016d0c6b817c87a430ccdb
-
          
          | ValBool Bool
          | And Ast Ast | Or Ast Ast | Not Ast
