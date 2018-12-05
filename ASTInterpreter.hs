@@ -12,13 +12,13 @@ type Program = [Stmts]
 
 data Stmts = Def String [String] Stmts 
               | Block [Stmts] 
-              -- | Expr 
+              | Id Expr 
               | While [Expr] Stmts 
               | If Expr Stmts [Stmts] 
               | Return Expr
               | Print String 
               | Break
-              | Continue
+              | Continue -- deriving Show
 
 data Expr = String [Expr] 
               | I Integer 
@@ -35,15 +35,36 @@ data Expr = String [Expr]
               | Minus Expr Expr
               | Mult Expr Expr
               | Div Expr Expr
-              | Mod Expr Expr
-              | Bop Expr Expr
+              | Mod Expr Expr -- deriving Show
 
 data Ast = Stmts | Expr 
 
-
-instance Show Ast where
-  show I i = show i
-  show B i = show i
+instance Show Stmts where
+  -- show (Def name params (Block code)) = show "def " ++ name ++ "(" ++ params ++ ") { " ++ (show code) ++ " }" 
+  show (Id id) = show id 
+  -- show () = undefined
+  -- show () = undefined
+  -- show () = undefined
+  -- show () = undefined
+  -- show () = undefined
+  show _ = undefined
+instance Show Expr where
+  show (I i) = show i
+  show (B i) = show i
+  show (Or x y) = show x ++ " || " ++ show y
+  show (And x y) = show x ++ " && " ++ show y
+  show (Not x) = "!" ++ show x
+  show (Eq x y) = show x ++ " == " ++ show y
+  show (Less x y) = show x ++ " < " ++ show y
+  show (LessEq x y) = show x ++ " <= " ++ show y
+  show (Great x y) = show x ++ " > " ++ show y
+  show (GreatEq x y) = show x ++ " >= " ++ show y
+  show (Plus x y) = show x ++ " + " ++ show y
+  show (Minus x y) = show x ++ " - " ++ show y
+  show (Mult x y) = show x ++ " * " ++ show y
+  show (Div x y) = show x ++ " / " ++ show y
+  show (Mod x y) = show x ++ " % " ++ show y
+  show _ = undefined
 
   -- show Program (x:xs) = "[" ++ show x ++ ", " ++ show xs ++ "]"
   -- show (Def ident params stmts) = "def " ++ show ident ++ "(" ++ show params ++ ") {" 
