@@ -41,7 +41,8 @@ data Ast = Stmts | Expr
 
 instance Show Stmts where
   -- show (Def name params (Block code)) = show "def " ++ name ++ "(" ++ params ++ ") { " ++ (show code) ++ " }" 
-  show (Id id) = show id 
+  show (Id id) = show id
+  show 
   -- show () = undefined
   -- show () = undefined
   -- show () = undefined
