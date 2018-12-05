@@ -3,63 +3,63 @@ module CParser where
 import ASTInterpreter
 import CParserMonad
 
--- TODO: apps, proofread everything
+-- -- TODO: apps, proofread everything
 
 
--- hierarchy of dependency:
--- parse
--- application
--- :
--- orExpr
--- andExpr
--- +, -
--- x, -
--- !
--- atoms
+-- -- hierarchy of dependency:
+-- -- parse
+-- -- application
+-- -- :
+-- -- orExpr
+-- -- andExpr
+-- -- +, -
+-- -- x, -
+-- -- !
+-- -- atoms
 
-parser :: Parser Ast
-parser = apps <||> cons <||> orExpr <||> andExpr <||> addSubExpr <||> multDivExpr <||> notExp <||> atoms
+-- parser :: Parser Ast
+-- parser = apps <||> cons <||> orExpr <||> andExpr <||> addSubExpr <||> multDivExpr <||> notExp <||> atoms
 
--- note that the parser must respect all the precedence and associativity rules expressed in the prettyShow function.
--- that means
--- ! binds more tightly than
--- * / which binds more tightly than
--- + - which binds more tightly than
--- && which binds more tightly than
--- || which binds more tightly than
--- : which binds more tightly than
--- {the application} which binds weakest of all
+-- -- note that the parser must respect all the precedence and associativity rules expressed in the prettyShow function.
+-- -- that means
+-- -- ! binds more tightly than
+-- -- * / which binds more tightly than
+-- -- + - which binds more tightly than
+-- -- && which binds more tightly than
+-- -- || which binds more tightly than
+-- -- : which binds more tightly than
+-- -- {the application} which binds weakest of all
 
--- + - * / && || {the application} are left associative
--- : is right associative
+-- -- + - * / && || {the application} are left associative
+-- -- : is right associative
 
--- we are mostly following the questionable c precedence rules
+-- -- we are mostly following the questionable c precedence rules
 
-oneOf :: [Parser a] -> Parser a
-oneOf [] = failParse
-oneOf (pa:rest) = pa <||> oneOf rest
---
--- -- *LangParser> parse (oneOf [ints,bools]) "-78"
--- -- Just (-78,"")
--- -- *LangParser> parse (oneOf [ints,bools]) " true"
--- -- Just (true,"")
--- -- *LangParser> parse (oneOf [ints,bools]) " tr ue"
--- -- Nothing
+-- oneOf :: [Parser a] -> Parser a
+-- oneOf [] = failParse
+-- oneOf (pa:rest) = pa <||> oneOf rest
+-- --
+-- -- -- *LangParser> parse (oneOf [ints,bools]) "-78"
+-- -- -- Just (-78,"")
+-- -- -- *LangParser> parse (oneOf [ints,bools]) " true"
+-- -- -- Just (true,"")
+-- -- -- *LangParser> parse (oneOf [ints,bools]) " tr ue"
+-- -- -- Nothing
 
-withInfix :: Parser a -> [(String, a -> a -> a)] -> Parser a
-withInfix pa ls = let operators = fmap fst ls
-                      opParsers = fmap (\ s -> token $ literal s) operators
+-- withInfix :: Parser a -> [(String, a -> a -> a)] -> Parser a
+-- withInfix pa ls = let operators = fmap fst ls
+--                       opParsers = fmap (\ s -> token $ literal s) operators
 
-                      --innerParser :: a -> Parser a, where a is the same as above
-                      innerParser left = do s <- oneOf opParsers
-                                            next <- pa
-                                            case lookup s ls of
-                                             Nothing -> failParse
-                                             Just f ->  let out = f left next
-                                                        in (innerParser out) <||> return out
-                  in do l <- pa
-                        (innerParser l) <||> (return l)
-keywords = ["if","then","else", "let", "in", "true","false"]
+--                       --innerParser :: a -> Parser a, where a is the same as above
+--                       innerParser left = do s <- oneOf opParsers
+--                                             next <- pa
+--                                             case lookup s ls of
+--                                              Nothing -> failParse
+--                                              Just f ->  let out = f left next
+--                                                         in (innerParser out) <||> return out
+--                   in do l <- pa
+--                         (innerParser l) <||> (return l)
+-- keywords = ["if","then","else", "let", "in", "true","false"]
 
 vars :: Parser Ast
 vars = do s <- token $ varParser
@@ -67,157 +67,135 @@ vars = do s <- token $ varParser
           then failParse
           else return $ Var s
 
-ints :: Parser Ast
-ints = do s <- token $ intParser
-          return $ ValInt s
+-- ints :: Parser Ast
+-- ints = do s <- token $ intParser
+--           return $ ValInt s
 
-bools :: Parser Ast
-bools = do s <- token $ literal "true" <||> literal "false"
-           if s == "true"
-           then return $ ValBool True
-           else return $ ValBool False
+-- bools :: Parser Ast
+-- bools = do s <- token $ literal "true" <||> literal "false"
+--            if s == "true"
+--            then return $ ValBool True
+--            else return $ ValBool False
 
-nil :: Parser Ast
-nil = do s <- (token $ literal "[]")
-         return $ Nil
-
-
-apps :: Parser Ast
-apps = withInfix cons [("",App)] -- the tokens eat up all the spaces so we split on the empty string
-
--- hierarchy of dependency:
--- parse
--- application
--- :
--- orExpr
--- andExpr
--- +, -
--- x, -
--- !
--- atoms
-
-cons :: Parser Ast
-cons = (do s <- orExpr -- maintain the hierarchy of dependency
-           token $ literal ":"
-           t <- cons
-           return $ Cons s t) <||> orExpr
-
--- *LangParser> parse cons "1 : 4: true"
--- Just (1 : 4 : true,"")
--- *LangParser> parse cons "1 : 4: 3+5"
--- Just (1 : 4 : (3 + 5),"")
+-- nil :: Parser Ast
+-- nil = do s <- (token $ literal "[]")
+--          return $ Nil
 
 
-orExpr :: Parser Ast
-orExpr = withInfix andExpr [("||", Or)]
+-- apps :: Parser Ast
+-- apps = withInfix cons [("",App)] -- the tokens eat up all the spaces so we split on the empty string
 
--- *LangParser> parse orExpr "true || false && 7"
--- Just (true || false && 7,"")
--- *LangParser> parse orExpr "true || false || 7"
--- Just (true || false || 7,"")
--- *LangParser> parse orExpr "true"
--- Just (true,"")
+-- -- hierarchy of dependency:
+-- -- parse
+-- -- application
+-- -- :
+-- -- orExpr
+-- -- andExpr
+-- -- +, -
+-- -- x, -
+-- -- !
+-- -- atoms
 
-andExpr :: Parser Ast
-andExpr = withInfix addSubExpr [("&&", And)]
+-- cons :: Parser Ast
+-- cons = (do s <- orExpr -- maintain the hierarchy of dependency
+--            token $ literal ":"
+--            t <- cons
+--            return $ Cons s t) <||> orExpr
 
--- *LangParser> parse andExpr "false"
--- Just (false,"")
--- *LangParser> parse andExpr "false && false"
--- Just (false && false,"")
-
-addSubExpr :: Parser Ast
-addSubExpr = withInfix multDivExpr [("+", Plus), ("-", Minus)]
-
--- *LangParser> parse addSubExpr "1+2+3+4"
--- Just (1 + 2 + 3 + 4,"")
--- *LangParser> parse addSubExpr "1-2-3-4"
--- Just (1 - 2 - 3 - 4,"")
-
-multDivExpr :: Parser Ast
-multDivExpr = withInfix notExp [("*", Mult), ("/", Div)]
-
-notExp :: Parser Ast
-notExp = (do token $ literal "!"
-             s <- notExp
-             return $ Not s) <||> atoms
+-- -- *LangParser> parse cons "1 : 4: true"
+-- -- Just (1 : 4 : true,"")
+-- -- *LangParser> parse cons "1 : 4: 3+5"
+-- -- Just (1 : 4 : (3 + 5),"")
 
 
-atoms:: Parser Ast
-atoms = ints <||> bools  <||>  nil <||> parens <||> ifParser <||> letParser <||>  lambdaParser <||> vars
+-- orExpr :: Parser Ast
+-- orExpr = withInfix andExpr [("||", Or)]
 
--- *LangParser> parse atoms "111"
--- Just (111,"")
--- *LangParser> parse atoms "  true"
--- Just (true,"")
+-- -- *LangParser> parse orExpr "true || false && 7"
+-- -- Just (true || false && 7,"")
+-- -- *LangParser> parse orExpr "true || false || 7"
+-- -- Just (true || false || 7,"")
+-- -- *LangParser> parse orExpr "true"
+-- -- Just (true,"")
 
--- THESE NEXT ONES ARE RECURSIVE
+-- andExpr :: Parser Ast
+-- andExpr = withInfix addSubExpr [("&&", And)]
 
-ifParser :: Parser Ast
-ifParser = do token $ literal "if"
-              cond <- token $ parser
-              token $ literal "then"
-              first <- token $ parser
-              token $ literal "else"
-              sec <- token $ parser
-              return $ If cond first sec
+-- -- *LangParser> parse andExpr "false"
+-- -- Just (false,"")
+-- -- *LangParser> parse andExpr "false && false"
+-- -- Just (false && false,"")
 
-letParser :: Parser Ast
-letParser = do token $ literal "let"
-               var <- token $ varParser
-               token $ literal "="
-               value <- token $ parser
-               token $ literal "in"
-               expression <- token $ parser
-               return $ Let var value expression
+-- addSubExpr :: Parser Ast
+-- addSubExpr = withInfix multDivExpr [("+", Plus), ("-", Minus)]
 
+-- -- *LangParser> parse addSubExpr "1+2+3+4"
+-- -- Just (1 + 2 + 3 + 4,"")
+-- -- *LangParser> parse addSubExpr "1-2-3-4"
+-- -- Just (1 - 2 - 3 - 4,"")
 
--- *LangParser> parse letParser "let x=3 in x+x"
--- Just (let x = 3 in x + x,"")
+-- multDivExpr :: Parser Ast
+-- multDivExpr = withInfix notExp [("*", Mult), ("/", Div)]
 
-
-
-lambdaParser :: Parser Ast
-lambdaParser = do token $ literal "\\"
-                  var <- token $ varParser
-                  token $ literal "->"
-                  body <- token $ parser
-                  return $ Lam var body
+-- notExp :: Parser Ast
+-- notExp = (do token $ literal "!"
+--              s <- notExp
+--              return $ Not s) <||> atoms
 
 
-parens :: Parser Ast
-parens = do token $ literal "("
-            s <- token $ parser
-            token $ literal ")"
-            return $ s
+-- atoms:: Parser Ast
+-- atoms = ints <||> bools  <||>  nil <||> parens <||> ifParser <||> letParser <||>  lambdaParser <||> vars
 
--- *LangParser> parse parser "(true)"
--- Just (true,"")
--- *LangParser> parse parser "let x = (if true and false then 3 else elsee) in x + x"
--- Just (let x = if true and false then 3 else elsee in x + x,"")
+-- -- *LangParser> parse atoms "111"
+-- -- Just (111,"")
+-- -- *LangParser> parse atoms "  true"
+-- -- Just (true,"")
 
----- NEW FUNCTIONS BELOW
+-- -- THESE NEXT ONES ARE RECURSIVE
 
-factorParser :: Parser Ast
-factorParser = exprParser <||> identParser <||> atoms
+-- ifParser :: Parser Ast
+-- ifParser = do token $ literal "if"
+--               cond <- token $ parser
+--               token $ literal "then"
+--               first <- token $ parser
+--               token $ literal "else"
+--               sec <- token $ parser
+--               return $ If cond first sec
 
-identParser :: Parser Ast
-identParser = do var <- token $ varParser
-                 token $ literal "="
-                 body <- exprParser
-                 token $ literal ";\n"
-                 return $ Identifier var body
+-- letParser :: Parser Ast
+-- letParser = do token $ literal "let"
+--                var <- token $ varParser
+--                token $ literal "="
+--                value <- token $ parser
+--                token $ literal "in"
+--                expression <- token $ parser
+--                return $ Let var value expression
 
-modParser :: Parser Ast
-modParser = withInfix undefined [("%", Mod)]
 
-inequalityParser ::  Parser Ast -- they are on the same level of the hierarchy (?) so I can group them together
-greaterThanParser = withInfix udefined [("<", LessThan), ("<=", LessThanEquals), (">", GreaterThan), (">=", GeaterThanEquals), ("!=", NotEqual), ("==", Equals)]
+-- -- *LangParser> parse letParser "let x=3 in x+x"
+-- -- Just (let x = 3 in x + x,"")
 
-termParser :: Parser Ast
-termParser = do factor <- token $ factorParser
-                token $ parser
-                
-exprParser :: Parser Ast
 
--- condParser
+
+-- lambdaParser :: Parser Ast
+-- lambdaParser = do token $ literal "\\"
+--                   var <- token $ varParser
+--                   token $ literal "->"
+--                   body <- token $ parser
+--                   return $ Lam var body
+
+
+-- parens :: Parser Ast
+-- parens = do token $ literal "("
+--             s <- token $ parser
+--             token $ literal ")"
+--             return $ s
+
+-- -- *LangParser> parse parser "(true)"
+-- -- Just (true,"")
+-- -- *LangParser> parse parser "let x = (if true and false then 3 else elsee) in x + x"
+-- -- Just (let x = if true and false then 3 else elsee in x + x,"")
+
+-- ---- NEW FUNCTIONS BELOW
+
+

@@ -3,190 +3,141 @@ module ASTInterpreter where
 import Prelude hiding (lookup)
 import Data.Map(Map, lookup, insert, empty, fromList)  -- for State
 
-import CEnvUnsafe
 
 
 -- Here is the abstract syntax tree for our language
+-- Stmts and Expr
 
-data Term = F Factor | Mult Term Factor | Div Term Factor | Mod Term Factor
+type Program = [Stmts]
 
-data Expr = T Term | Plus Expr Term | Minus Expr Term
+data Stmts = Def String [String] Stmts 
+              | Block [Stmts] 
+              -- | Expr 
+              | While [Expr] Stmts 
+              | If Expr Stmts [Stmts] 
+              | Return Expr
+              | Print String 
+              | Break
+              | Continue
 
-data Identifier = S String | Exp Expr
+data Expr = String [Expr] 
+              | I Integer 
+              | B Bool
+              | Or Expr Expr
+              | And Expr Expr
+              | Not Expr
+              | Eq Expr Expr
+              | Less Expr Expr
+              | LessEq Expr Expr
+              | Great Expr Expr
+              | GreatEq Expr Expr 
+              | Plus Expr Expr
+              | Minus Expr Expr
+              | Mult Expr Expr
+              | Div Expr Expr
+              | Mod Expr Expr
+              | Bop Expr Expr
 
-data Factor = I Integer | Neg Factor | Identifier Expr
+data Ast = Stmts | Expr 
 
----------
-
-data Cond = Equals Expr Expr 
-            | NotEquals Expr Expr 
-            | LessThan Expr Expr 
-            | LessThanEquals Expr Expr 
-            | GreaterThan Expr Expr 
-            | GreaterThanEquals Expr Expr
-
----------
-
-data BFactor = C Cond | Not BFactor | BExpr
-
-data BTerm = BF BFactor | And BFactor BTerm
-
-data BExpr = BT BTerm | Or BTerm BExpr
-
----------
-
-data Stmt = Assign String Expr | Return Expr | Print Identifier | Break | Continue
-
-data Block = ListStmts [Stmt] | While BExpr Block | If BExpr Block | IfElse BExpr Block Block
-
-data Stmts = Statement Stmt | StmtList [Stmt] | BS Block Stmts | Bl Block 
-
-data Func = DefParams Identifier Identifier Stmts | DefNoParams Identifier Stmts
-
-data Funcs = Fn Func | FnList [Func]
-
-type Program = Funcs
-
----------
-
-data Ast = Identifier | Factor | Term | Expr | Cond | BFactor | BTerm | BExpr | Stmt | Block | Stmts | Func | Funcs deriving (Eq, Show)
 
 instance Show Ast where
-  show ast = prettyShow ast 0
+  show I i = show i
+  show B i = show i
 
-stdLib = fromList [("tail", Fun $ \ v -> case v of Ls (_:ls)-> Ok $ Ls ls
-                                                   _ -> Error "not an non empty list"),
-                   ("head", Fun $ \v -> case v of Ls (l:ls) -> Ok l
-                                                  _ -> Error "not something"),
-                   ("len", Fun $ \v -> case v of Ls lst -> Ok $ I $ foldr (\_ n -> 1 + n) 0 lst
-                                                 _ -> Error "not something")]
--- helper function that runs with a standard library of functions: head, tail ...
-run :: Ast -> (Unsafe Val)
-run a = r (eval a) stdLib
+  -- show Program (x:xs) = "[" ++ show x ++ ", " ++ show xs ++ "]"
+  -- show (Def ident params stmts) = "def " ++ show ident ++ "(" ++ show params ++ ") {" 
 
-
-type Env = Map String Val
+-- eval :: Ast -> EnvUnsafe Env Val
+-- eval (I a) = return $ a
+-- -- finish Factor
+-- eval (Neg f) = return $ -1 * (eval f)
+-- eval (Identifier exp) = undefined
 
 
-eval :: Ast -> EnvUnsafe Env Val
-eval (I a) = return $ a
--- finish Factor
-eval (Neg f) = return $ -1 * (eval f)
-eval (Identifier exp) = undefined
+-- -- helper functions that take care of type issues (use a "Error" when things have the wron type
+-- evalInt :: Ast -> EnvUnsafe Env Integer
+-- evalInt a = do res <- eval a
+--                case res of I i -> return i
+--                            _ -> err "no int"
+
+-- evalIntZero :: Ast -> EnvUnsafe Env Integer
+-- evalIntZero a = do res <- eval a
+--                    case res of I 0 -> err "can't divide by 0"
+--                                I i -> return i
+--                                _ -> err "not an int"
 
 
--- Let variable name = variable value in expression
--- withVal Implementation
--- do val' <- eval val
---     withVal var val' (eval bod)
--- eval $ app (lam var bod) val
+-- evalBool :: Ast -> EnvUnsafe Env Bool
+-- evalBool a = do res <- eval a
+--                 case res of B i -> return i
+--                             _ -> err "no bool"
 
+-- evalList :: Ast -> EnvUnsafe Env [Val]
+-- evalList a = do res <- eval a
+--                 case res of Ls a -> return a
+--                             _ -> err "no lst"
 
--- some examples
--- example = let x = Var "x"
---           in run $ App (Lam "x" ( x `Plus` x))  (ValInt 7)
---
--- example2 = let x = Var "x"; y = Var "y"
---            in run $ ((Lam "x" (Lam "y" ( x `Plus` y))) `App` (ValInt 7)) `App` (ValInt 4)
+-- evalFun :: Ast -> EnvUnsafe Env (Val -> Unsafe Val)
+-- evalFun a = do res <- eval a
+--                case res of Fun a -> return a
+--                            _ -> err "not a function hehe"
 
--- some helper function, you may find helpful
-valOf :: String -> EnvUnsafe Env Val
-valOf var = do env <- getEnv
-               case (lookup var env) of Nothing -> err "variable doesn't exist"
-                                        Just a -> return a
---
--- -- add a val into the environment
-withVal :: String -> Val -> EnvUnsafe Env a -> EnvUnsafe Env a
-withVal var v comp = do env <- getEnv
-                        let env' = insert var v env in
-                          case r comp env of
-                            Ok a -> return a
-                            Error s -> err s
-
-
--- helper functions that take care of type issues (use a "Error" when things have the wron type
-evalInt :: Ast -> EnvUnsafe Env Integer
-evalInt a = do res <- eval a
-               case res of I i -> return i
-                           _ -> err "no int"
-
-evalIntZero :: Ast -> EnvUnsafe Env Integer
-evalIntZero a = do res <- eval a
-                   case res of I 0 -> err "can't divide by 0"
-                               I i -> return i
-                               _ -> err "not an int"
-
-
-evalBool :: Ast -> EnvUnsafe Env Bool
-evalBool a = do res <- eval a
-                case res of B i -> return i
-                            _ -> err "no bool"
-
-evalList :: Ast -> EnvUnsafe Env [Val]
-evalList a = do res <- eval a
-                case res of Ls a -> return a
-                            _ -> err "no lst"
-
-evalFun :: Ast -> EnvUnsafe Env (Val -> Unsafe Val)
-evalFun a = do res <- eval a
-               case res of Fun a -> return a
-                           _ -> err "not a function hehe"
-
--- ungraded bonus challenge: use a helper type class to do this functionality
+-- -- ungraded bonus challenge: use a helper type class to do this functionality
 
 
 
--- This is helpful for testing and debugging
-fullyParenthesized :: Ast -> String
-fullyParenthesized (ValInt i) = "(" ++ show i ++ ")"
-fullyParenthesized (ValBool True) = "(" ++ "true" ++ ")"
-fullyParenthesized (ValBool False) = "(" ++ "false" ++ ")"
-fullyParenthesized (And l r) = "(" ++ (fullyParenthesized l) ++ " && " ++ (fullyParenthesized r) ++ ")"
-fullyParenthesized (Or l r) = "(" ++ (fullyParenthesized l) ++ " || " ++ (fullyParenthesized r) ++ ")"
-fullyParenthesized (Not a) = "(" ++ " ! " ++ (fullyParenthesized a) ++ ")"
-fullyParenthesized (Plus l r) = "(" ++ (fullyParenthesized l) ++ " + " ++ (fullyParenthesized r) ++ ")"
-fullyParenthesized (Minus l r) = "(" ++ (fullyParenthesized l) ++ " - " ++ (fullyParenthesized r) ++ ")"
-fullyParenthesized (Mult l r) = "(" ++ (fullyParenthesized l) ++ " * " ++ (fullyParenthesized r) ++ ")"
-fullyParenthesized (Div l r) = "(" ++ (fullyParenthesized l) ++ " / " ++ (fullyParenthesized r) ++ ")"
-fullyParenthesized (If b t e) = "(if " ++ (fullyParenthesized b) ++ " then " ++ (fullyParenthesized t) ++ " else " ++ (fullyParenthesized e) ++ ")"
-fullyParenthesized (Let v a bod) = "(let " ++ v ++ " = " ++ (fullyParenthesized a) ++ " in " ++ (fullyParenthesized bod) ++ ")"
-fullyParenthesized (Lam v bod) = "(\\ " ++ v ++ " -> " ++ (fullyParenthesized bod) ++ ")"
-fullyParenthesized (App f a) = "( " ++ (fullyParenthesized f)  ++ " " ++ (fullyParenthesized a) ++ ")"
-fullyParenthesized (Var s) = "( " ++ s ++ ")"
-fullyParenthesized (Cons h t) = "(" ++ (fullyParenthesized h)  ++ " : " ++ (fullyParenthesized t) ++ ")"
-fullyParenthesized Nil = "( [] )"
+-- -- This is helpful for testing and debugging
+-- fullyParenthesized :: Ast -> String
+-- fullyParenthesized (ValInt i) = "(" ++ show i ++ ")"
+-- fullyParenthesized (ValBool True) = "(" ++ "true" ++ ")"
+-- fullyParenthesized (ValBool False) = "(" ++ "false" ++ ")"
+-- fullyParenthesized (And l r) = "(" ++ (fullyParenthesized l) ++ " && " ++ (fullyParenthesized r) ++ ")"
+-- fullyParenthesized (Or l r) = "(" ++ (fullyParenthesized l) ++ " || " ++ (fullyParenthesized r) ++ ")"
+-- fullyParenthesized (Not a) = "(" ++ " ! " ++ (fullyParenthesized a) ++ ")"
+-- fullyParenthesized (Plus l r) = "(" ++ (fullyParenthesized l) ++ " + " ++ (fullyParenthesized r) ++ ")"
+-- fullyParenthesized (Minus l r) = "(" ++ (fullyParenthesized l) ++ " - " ++ (fullyParenthesized r) ++ ")"
+-- fullyParenthesized (Mult l r) = "(" ++ (fullyParenthesized l) ++ " * " ++ (fullyParenthesized r) ++ ")"
+-- fullyParenthesized (Div l r) = "(" ++ (fullyParenthesized l) ++ " / " ++ (fullyParenthesized r) ++ ")"
+-- fullyParenthesized (If b t e) = "(if " ++ (fullyParenthesized b) ++ " then " ++ (fullyParenthesized t) ++ " else " ++ (fullyParenthesized e) ++ ")"
+-- fullyParenthesized (Let v a bod) = "(let " ++ v ++ " = " ++ (fullyParenthesized a) ++ " in " ++ (fullyParenthesized bod) ++ ")"
+-- fullyParenthesized (Lam v bod) = "(\\ " ++ v ++ " -> " ++ (fullyParenthesized bod) ++ ")"
+-- fullyParenthesized (App f a) = "( " ++ (fullyParenthesized f)  ++ " " ++ (fullyParenthesized a) ++ ")"
+-- fullyParenthesized (Var s) = "( " ++ s ++ ")"
+-- fullyParenthesized (Cons h t) = "(" ++ (fullyParenthesized h)  ++ " : " ++ (fullyParenthesized t) ++ ")"
+-- fullyParenthesized Nil = "( [] )"
 
 
-showPar :: Bool -> String -> String
-showPar True s = "(" ++ s ++ ")"
-showPar false s =  s
+-- showPar :: Bool -> String -> String
+-- showPar True s = "(" ++ s ++ ")"
+-- showPar false s =  s
 
 
--- provide a nice show with minimal parentheses, for testing an documentation
---the bigger the number the more tight he biding
-prettyShow :: Ast -> Integer -> String
-prettyShow (ValInt i) _ =  if i < 0
-                           then  "(" ++ show i ++ ")"
-                           else show i
-prettyShow (ValBool True) _ =  "true"
-prettyShow (ValBool False)  _  = "false"
-prettyShow Nil _ = "[]"
-prettyShow (Var s) _ = s
+-- -- provide a nice show with minimal parentheses, for testing an documentation
+-- --the bigger the number the more tight he biding
+-- prettyShow :: Ast -> Integer -> String
+-- prettyShow (ValInt i) _ =  if i < 0
+--                            then  "(" ++ show i ++ ")"
+--                            else show i
+-- prettyShow (ValBool True) _ =  "true"
+-- prettyShow (ValBool False)  _  = "false"
+-- prettyShow Nil _ = "[]"
+-- prettyShow (Var s) _ = s
 
-prettyShow (Lam v bod) i = showPar (i>1) $ "\\ " ++ v ++ " -> " ++ (prettyShow bod 1)
-prettyShow (Let v a bod)  i = showPar (i>1) $  "let " ++ v ++ " = " ++ (prettyShow a 1) ++ " in " ++ (prettyShow bod 1)
-prettyShow (If b t e) i = showPar (i>1) $  "if " ++ (prettyShow b 1) ++ " then " ++ (prettyShow t 1) ++ " else " ++ (prettyShow e 1)
+-- prettyShow (Lam v bod) i = showPar (i>1) $ "\\ " ++ v ++ " -> " ++ (prettyShow bod 1)
+-- prettyShow (Let v a bod)  i = showPar (i>1) $  "let " ++ v ++ " = " ++ (prettyShow a 1) ++ " in " ++ (prettyShow bod 1)
+-- prettyShow (If b t e) i = showPar (i>1) $  "if " ++ (prettyShow b 1) ++ " then " ++ (prettyShow t 1) ++ " else " ++ (prettyShow e 1)
 
-prettyShow (App l r) i = showPar (i>2) $ (prettyShow l 2) ++ " " ++ (prettyShow r 3)
-prettyShow (Cons l r) i = showPar (i>4) $ (prettyShow l 5) ++ " : " ++ (prettyShow r 4)
-prettyShow (Or l r) i = showPar (i>6) $ (prettyShow l 6) ++ " || " ++ (prettyShow r 7)
-prettyShow (And l r) i = showPar (i>8) $ (prettyShow l 8) ++ " && " ++ (prettyShow r 9)
-prettyShow (Minus l r) i = showPar (i>10) $ (prettyShow l 10) ++ " - " ++ (prettyShow r 11)
-prettyShow (Plus l r) i = showPar (i>10) $ (prettyShow l 10) ++ " + " ++ (prettyShow r 11)
-prettyShow (Mult l r) i = showPar (i>12) $ (prettyShow l 12) ++ " * " ++ (prettyShow r 13)
-prettyShow (Div l r) i = showPar (i>12) $ (prettyShow l 12) ++ " / " ++ (prettyShow r 13)
+-- prettyShow (App l r) i = showPar (i>2) $ (prettyShow l 2) ++ " " ++ (prettyShow r 3)
+-- prettyShow (Cons l r) i = showPar (i>4) $ (prettyShow l 5) ++ " : " ++ (prettyShow r 4)
+-- prettyShow (Or l r) i = showPar (i>6) $ (prettyShow l 6) ++ " || " ++ (prettyShow r 7)
+-- prettyShow (And l r) i = showPar (i>8) $ (prettyShow l 8) ++ " && " ++ (prettyShow r 9)
+-- prettyShow (Minus l r) i = showPar (i>10) $ (prettyShow l 10) ++ " - " ++ (prettyShow r 11)
+-- prettyShow (Plus l r) i = showPar (i>10) $ (prettyShow l 10) ++ " + " ++ (prettyShow r 11)
+-- prettyShow (Mult l r) i = showPar (i>12) $ (prettyShow l 12) ++ " * " ++ (prettyShow r 13)
+-- prettyShow (Div l r) i = showPar (i>12) $ (prettyShow l 12) ++ " / " ++ (prettyShow r 13)
 
-prettyShow (Not l ) i = showPar (i>14) $  " ! " ++ (prettyShow l 14)
+-- prettyShow (Not l ) i = showPar (i>14) $  " ! " ++ (prettyShow l 14)
 
 
 --some more examples:
